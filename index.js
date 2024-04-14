@@ -1,32 +1,82 @@
+// Require necessary packages
 const express = require("express");
-require("dotenv").config();
-const cors = require("cors");
 const mongoose = require("mongoose");
-const itemRouter = require("./routes");
+const bodyParser = require("body-parser");
+require("dotenv").config();
 
+// Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-// Connect to MongoDB Atlas
-mongoose
-  .connect(process.env.MONGODB_URL)
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch((err) => console.error("Error connecting to MongoDB Atlas:", err));
+const PORT = process.env.PORT;
 
 // Middleware
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Routes
-app.use("/api", itemRouter);
+// Connect to MongoDB Atlas
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log(err));
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
+// Define schema and model for heading and paragraph
+const { Schema } = mongoose;
+
+const headingParagraphSchema = new Schema({
+  heading: String,
+  paragraph: String,
+});
+
+const HeadingParagraph = mongoose.model(
+  "HeadingParagraph",
+  headingParagraphSchema
+);
+
+// CRUD routes
+app.post("/heading-paragraph", async (req, res) => {
+  try {
+    const { heading, paragraph } = req.body;
+    const newHeadingParagraph = new HeadingParagraph({ heading, paragraph });
+    await newHeadingParagraph.save();
+    res.status(201).json(newHeadingParagraph);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.get("/heading-paragraph", async (req, res) => {
+  try {
+    const headingParagraphs = await HeadingParagraph.find();
+    res.json(headingParagraphs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.put("/heading-paragraph/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const updatedHeadingParagraph = await HeadingParagraph.findByIdAndUpdate(
+      id,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedHeadingParagraph);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete("/heading-paragraph/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await HeadingParagraph.findByIdAndDelete(id);
+    res.json({ message: "Heading and paragraph deleted" });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on port http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
