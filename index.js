@@ -2,6 +2,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 require("dotenv").config();
 
 // Initialize Express app
@@ -9,6 +10,7 @@ const app = express();
 const PORT = process.env.PORT;
 
 // Middleware
+app.use(cors());
 app.use(bodyParser.json());
 
 // Connect to MongoDB Atlas
@@ -49,6 +51,22 @@ app.get("/heading-paragraph", async (req, res) => {
   try {
     const headingParagraphs = await HeadingParagraph.find();
     res.json(headingParagraphs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET a specific heading and paragraph by ID
+app.get("/heading-paragraph/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const headingParagraph = await HeadingParagraph.findById(id);
+    if (!headingParagraph) {
+      return res
+        .status(404)
+        .json({ message: "Heading and paragraph not found" });
+    }
+    res.json(headingParagraph);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
